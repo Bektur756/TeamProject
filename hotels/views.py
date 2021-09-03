@@ -6,96 +6,64 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from django_filters import rest_framework as filters
 from rest_framework import filters as rest_filters
 
-from hotels.models import Product, ProductReview
-from product.permissions import IsAuthorOrIsAdmin
-from product.serializers import (ProductSerializer, ProductDetailsSerializer,
-                                 CreateProductSerializer, ReviewSerializer)
+from .models import Hotel, HotelReview
+# from product.permissions import IsAuthorOrIsAdmin
+from .serializers import (HotelSerializer, HotelDetailsSerializer,
+                                  CreateHotelSerializer, ReviewSerializer)
 
 
 def test_view(request):
     return HttpResponse('Hello World!')
 
 @api_view(['GET'])
-def products_list(request):
-    products = Product.objects.all()
+def hotel_list(request):
+    hotels = Hotel.objects.all()
 
     # [product], [product2], [product3]
-    serializer = ProductSerializer(products, many=True)
+    serializer = HotelSerializer(hotels, many=True)
     # {id : 1 , title : 2}
     return Response(serializer.data)
 
-# class ProductsListView(APIView):
-#     def get(self, request):
-#         products = Product.objects.all()
-#         serializer = ProductSerializer(products, many=True)
-#         return Response(serializer.data)
-#
-# class ProductsListView(ListAPIView):
-#     queryset = Product.objects.all()
-#     serializer_class = ProductSerializer
-#
-# class ProductsDetailsView(RetrieveAPIView):
-#     queryset = Product.objects.all()
-#     serializer_class = ProductDetailsSerializer
-#
-# class CreateProductView(CreateAPIView):
-#     queryset = Product.objects.all()
-#     serializer_class = CreateProductSerializer
-#
-# class UpdateProductView(UpdateAPIView):
-#     queryset = Product.objects.all()
-#     serializer_class = CreateProductSerializer
-#
-# class DeleteProductView(DestroyAPIView):
-#     queryset = Product.objects.all()
-#     serializer_class = CreateProductSerializer
 
-class ProductFilter(filters.FilterSet):
-    price_from = filters.NumberFilter('price', 'gte')
-    price_to = filters.NumberFilter('price', 'lte')
+class HotelFilter(filters.FilterSet):
+    price_from = filters.NumberFilter('price_per_day', 'gte')
+    price_to = filters.NumberFilter('price_per_day', 'lte')
+
     class Meta:
-        model = Product
+        model = Hotel
         fields = ('price_from', 'price_to')
 
-class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
+
+class HotelViewSet(viewsets.ModelViewSet):
+    queryset = Hotel.objects.all()
     filter_backends = [filters.DjangoFilterBackend,
                        rest_filters.SearchFilter,
                        rest_filters.OrderingFilter]
-    # filterset_fields = ('price')
-    filterset_class = ProductFilter
-    search_fields = ['title', 'description']
-    ordering_fields = ['title', 'price']
-
-    # def get_queryset(self):
-    #     queryset = super().get_queryset()
-    #     print(queryset)
-    #     print(self.request.query_params)
-    #     price_from = self.request.query_params.get('price_from')
-    #     price_to = self.request.query_params.get('price_to')
-    #     queryset = queryset.filter(price__gte=price_from, price__lte=price_to)
-    #     return queryset
+    # filterset_fields = ('price_per_day')
+    filterset_class = HotelFilter
+    search_fields = ['hotel_name', 'description']
+    ordering_fields = ['hotel_name', 'price_per_day']
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return ProductSerializer
+            return HotelSerializer
         elif self.action == 'retrieve':
-            return ProductDetailsSerializer
-        return CreateProductSerializer
+            return HotelDetailsSerializer
+        return CreateHotelSerializer
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAdminUser()]
         return []
 
-    #api/v1/product/id/reviews
+#api/v1/product/id/reviews
     @action(['GET'], detail=True)
     def reviews(self, request, pl=None):
-        product = self.get_object()
-        reviews = ProductReview.objexts.filter(product=product)
-        reviews = product.reviews.all()
+        hotel = self.get_object()
+        reviews = hotel.reviews.all()
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data, status=200)
+
 
 #Создает только залогиненный пользователь
 # Редактировать или удалять может либо админ, либо автор
@@ -104,12 +72,5 @@ class ReviewViewSet(mixins.CreateModelMixin,
                     mixins.UpdateModelMixin,
                     mixins.DestroyModelMixin,
                     viewsets.GenericViewSet):
-    queryset = ProductReview.objects.all()
+    queryset = HotelReview.objects.all()
     serializer_class = ReviewSerializer
-
-    def get_permissions(self):
-        if self.action == 'create':
-            return [IsAuthenticated()]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            return [IsAuthenticated(), IsAuthorOrIsAdmin()]
-        return []

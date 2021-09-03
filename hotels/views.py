@@ -74,3 +74,13 @@ class ReviewViewSet(mixins.CreateModelMixin,
                     viewsets.GenericViewSet):
     queryset = HotelReview.objects.all()
     serializer_class = ReviewSerializer
+    
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsAuthenticated()]
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsAuthorOrIsAdmin()]
+        return []
+      
+      
